@@ -197,6 +197,8 @@ def start_searching(server, nickname):
             server.storbinary('STOR p.txt', f)
     players_file = open('players.txt', 'r')
     players_file_lines = players_file.readlines()
+    if players_file_lines == ['\n']:
+        players_file_lines = []
     print(players_file_lines)
     if players_file_lines == []:
         players_file.close()
