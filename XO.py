@@ -214,7 +214,7 @@ def start_searching(server, nickname):
     else:
         print('v3')
         for i in range(len(players_file_lines)):
-            if nickname in players_file_lines[i]:
+            if nickname in players_file_lines[i].split()[0]:
                 players_file_lines[i] = nickname + ' searching\n'
                 break
         players_file.close()
@@ -239,11 +239,11 @@ def create_session(server, nickname, enemy_nickname):
     players_file = open('players.txt')
     players_file_lines = players_file.readlines()
     for i in range(len(players_file_lines)):
-        if nickname in players_file_lines[i]:
+        if nickname in players_file_lines[i].split()[0]:
             self_index = i
             break
     for i in range(len(players_file_lines)):
-        if enemy_nickname in players_file_lines[i]:
+        if enemy_nickname in players_file_lines[i].split()[0]:
             enemy_index = i
             break
     players_file_lines[self_index] = nickname + ' playing ' + str(number) + '\n'
@@ -262,7 +262,7 @@ def join_session(server, nickname):
     players_file = open('players.txt')
     players_file_lines = players_file.readlines()
     for i in range(len(players_file_lines)):
-        if nickname in players_file_lines[i]:
+        if nickname in players_file_lines[i].split()[0]:
             self_index = i
             break
     server.cwd('/home/jrm/XO/sessions')
@@ -276,7 +276,7 @@ def search_for_players(server, nickname):
     players_file_lines = players_file.readlines()
     players_file_states = [i.split()[1] for i in players_file_lines]
     for i in range(len(players_file_lines)):
-        if nickname in players_file_lines[i]:
+        if nickname in players_file_lines[i].split()[0]:
             self_index = i
             break
     if (nickname + ' searching') in players_file_lines[self_index]:
@@ -301,7 +301,7 @@ def search_for_players(server, nickname):
     elif (nickname + ' request') in players_file_lines[self_index]:
         enemy_nickname = ' '.join(players_file_lines[self_index].split()[2:-1])
         for i in range(len(players_file_lines)):
-            if enemy_nickname in players_file_lines[i]:
+            if enemy_nickname in players_file_lines[i].split()[0]:
                 enemy_index = i
                 break
         if len(players_file_lines[self_index].split()) >= 4 and ('request ' + nickname) in players_file_lines[enemy_index]:
@@ -325,7 +325,7 @@ def wait_for_session(server, nickname):
     players_file = open('players.txt')
     players_file_lines = players_file.readlines()
     for i in range(len(players_file_lines)):
-        if nickname in players_file_lines[i]:
+        if nickname in players_file_lines[i].split()[0]:
             self_index = i
             break
     if (nickname + ' playing') in players_file_lines[self_index]:
