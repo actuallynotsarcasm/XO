@@ -186,11 +186,9 @@ def connect(server, number_of_try = 1):
 def start_searching(server, nickname):
     server.cwd('XO')
     if 'p.txt' in server.nlst():
-        print('file on server')
         with open('players.txt', 'wb') as f:
             server.retrbinary('RETR p.txt', f.write)
     else:
-        print('file not on server')
         with open('players.txt', 'w') as f:
             f.write('')
         with open('players.txt', 'rb') as f:
@@ -199,20 +197,16 @@ def start_searching(server, nickname):
     players_file_lines = players_file.readlines()
     if players_file_lines == ['\n']:
         players_file_lines = []
-    print(players_file_lines)
     if players_file_lines == []:
         players_file.close()
         players_file = open('players.txt', 'w')
         players_file.writelines(nickname + ' waiting\n')
-        print('v1')
     elif nickname not in ''.join(players_file_lines):
         players_file.close()
         players_file_lines.append(nickname + ' searching\n')
         players_file = open('players.txt', 'w')
         players_file.writelines(players_file_lines)
-        print('v2')
     else:
-        print('v3')
         for i in range(len(players_file_lines)):
             if nickname in players_file_lines[i].split()[0]:
                 players_file_lines[i] = nickname + ' searching\n'
@@ -221,7 +215,6 @@ def start_searching(server, nickname):
         players_file = open('players.txt', 'w')
         players_file.writelines(players_file_lines)
     players_file.close()
-    print(players_file_lines)
     with open('players.txt', 'rb') as f:
         server.storbinary('STOR p.txt', f)
 
@@ -294,21 +287,20 @@ def search_for_players(server, nickname):
         players_file.close()
         players_file = open('players.txt', 'w')
         players_file.writelines(players_file_lines)
-        print(players_file_lines)
         players_file.close()
         with open('players.txt', 'rb') as f:
             server.storbinary('STOR p.txt', f)
     elif (nickname + ' request') in players_file_lines[self_index]:
-        enemy_nickname = ' '.join(players_file_lines[self_index].split()[2:-1])
+        enemy_nickname = players_file_lines[self_index].split()[2]
         for i in range(len(players_file_lines)):
             if enemy_nickname in players_file_lines[i].split()[0]:
                 enemy_index = i
                 break
-        if len(players_file_lines[self_index].split()) >= 4 and ('request ' + nickname) in players_file_lines[enemy_index]:
+        if len(players_file_lines[self_index].split()) == 4 and ('request ' + nickname) in players_file_lines[enemy_index]:
             symbol = 'O'
             create_session(server, nickname, enemy_nickname)
         else:
-            players_file_lines[enemy_index] == enemy_nickname + ' request ' + nickname + ' a\n'
+            players_file_lines[enemy_index] = enemy_nickname + ' request ' + nickname + ' a\n'
             symbol = 'X'
             players_file.close()
             players_file = open('players.txt', 'w')
@@ -484,6 +476,7 @@ def main():
                         begin = True
                         print(5)
                 elif not turn:
+                    print('notturn')
                     if symbol == 'X':
                         coords_received = get_coordinates(server, 'X')
                         if bool(coords_received):
