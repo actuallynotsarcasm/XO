@@ -338,7 +338,10 @@ def get_coordinates(server, symbol):
     else:
         symbol = 'X'
     directory = server.nlst()
+    print('symbol='+symbol+'.')
+    print('directory='+directory)
     if 'move_' + symbol + '.txt' in directory:
+        print('yess')
         with open('move_' + symbol + '1.txt', 'wb') as f:
             server.retrbinary('m_' + symbol + '.txt', f.write)
         with open('move_' + symbol + '1.txt') as f:
@@ -387,6 +390,7 @@ def main():
                             if (turn and game_mode == 'offline') or (game_mode == 'online' and symbol == 'X'):
                                 if game_mode == 'online' and connected:
                                     send_coordinates(server, field_pos, 'X')
+                                    print('\n\n\n\n\n\n\n\nsended X on', field_pos)
                                 x_coords.append(field_pos)
                                 if five_in_a_row(x_coords, field_pos):
                                     win = True
@@ -396,6 +400,7 @@ def main():
                             else:
                                 if game_mode == 'online' and connected:
                                     send_coordinates(server, field_pos, 'O')
+                                    print('\n\n\n\n\n\n\n\nsended O on', field_pos)
                                 o_coords.append(field_pos)
                                 if five_in_a_row(o_coords, field_pos):
                                     win = True
@@ -478,12 +483,16 @@ def main():
                 elif not turn:
                     print('notturn')
                     if symbol == 'X':
+                        print('ifix')
                         coords_received = get_coordinates(server, 'X')
+                        print(coords_received)
                         if bool(coords_received):
                             x_coords.append(coords_received)
                             turn = not turn
                     else:
+                        print('ifo')
                         coords_received = get_coordinates(server, 'O')
+                        print(coords_received)
                         if bool(coords_received):
                             o_coords.append(coords_received)
                             turn = not turn
