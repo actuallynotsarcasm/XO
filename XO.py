@@ -1,3 +1,4 @@
+from socket import timeout
 import pygame as pg, sys, time, ftplib, os
 
 black = (0, 0, 0)
@@ -171,39 +172,54 @@ def exit_game():
 
 def connect(server, number_of_try = 1):
     try:
-        server.connect('192.168.1.88')
+        server.connect('192.168.1.88', timeout=2)
         server.login('jrm', 'Dumaesh 2005')
         server.getwelcome()
         return True
-    except ConnectionRefusedError:
+    except Exception:
         if number_of_try < 3:
-            connect(number_of_try + 1)
+            connect(server, number_of_try + 1)
         else:
             print('3 tries done')
+            return False
 
 def start_searching(server, nickname):
     server.cwd('XO')
-    with open('players.txt', 'wb') as f:
-        server.retrbinary('RETR p.txt', f.write)
-    players_file = open('players.txt', 'r')
-    if players_file.read() == '':
-        players_file.close()
-        players_file = open('players.txt', 'w')
-        players_file.writelines(nickname + ' waiting')
-    elif nickname not in players_file.read():
-        players_file.close()
-        players_file = open('players.txt', 'w')
-        players_file.writelines([nickname + ' waiting'])
+    if 'p.txt' in server.nlst():
+        print('file on server')
+        with open('players.txt', 'wb') as f:
+            server.retrbinary('RETR p.txt', f.write)
     else:
-        players_file_lines = players_file.readlines()
+        print('file not on server')
+        with open('players.txt', 'w') as f:
+            f.write('')
+        with open('players.txt', 'rb') as f:
+            server.storbinary('STOR p.txt', f)
+    players_file = open('players.txt', 'r')
+    players_file_lines = players_file.readlines()
+    print(players_file_lines)
+    if players_file_lines == []:
+        players_file.close()
+        players_file = open('players.txt', 'w')
+        players_file.writelines(nickname + ' waiting\n')
+        print('v1')
+    elif nickname not in ''.join(players_file_lines):
+        players_file.close()
+        players_file_lines.append(nickname + ' searching\n')
+        players_file = open('players.txt', 'w')
+        players_file.writelines(players_file_lines)
+        print('v2')
+    else:
+        print('v3')
         for i in range(len(players_file_lines)):
             if nickname in players_file_lines[i]:
-                players_file_lines[i] = nickname + ' waiting'
+                players_file_lines[i] = nickname + ' searching\n'
                 break
         players_file.close()
         players_file = open('players.txt', 'w')
         players_file.writelines(players_file_lines)
     players_file.close()
+    print(players_file_lines)
     with open('players.txt', 'rb') as f:
         server.storbinary('STOR p.txt', f)
 
@@ -228,8 +244,8 @@ def create_session(server, nickname, enemy_nickname):
         if enemy_nickname in players_file_lines[i]:
             enemy_index = i
             break
-    players_file_lines[self_index] += ' ' + str(number)
-    players_file_lines[enemy_index] += ' ' + str(number)
+    players_file_lines[self_index] = nickname + ' playing ' + str(number) + '\n'
+    players_file_lines[enemy_index] = enemy_nickname + ' playing ' + str(number) + '\n'
     players_file.close()
     players_file = open('players.txt', 'w')
     players_file.writelines(players_file_lines)
@@ -252,45 +268,69 @@ def join_session(server, nickname):
     server.cwd('session' + str(number))
 
 def search_for_players(server, nickname):
-    print('searching for players')
     with open('players.txt', 'wb') as f:
         server.retrbinary('RETR p.txt', f.write)
-    players_file = open('players.txt')
+    players_file = open('players.txt', 'r')
     players_file_lines = players_file.readlines()
-    print(players_file.read(), players_file_lines)
     players_file_states = [i.split()[1] for i in players_file_lines]
     for i in range(len(players_file_lines)):
         if nickname in players_file_lines[i]:
             self_index = i
             break
-    if players_file_lines[self_index] == nickname + ' waiting':
+    if (nickname + ' searching') in players_file_lines[self_index]:
         if len(players_file_lines) > 1:
+            found = False
             for i in range(len(players_file_lines)):
                 if i != self_index and players_file_states[i] == 'waiting':
-                    players_file_lines[i] = players_file_lines[i].split()[0] + ' request ' + nickname
+                    players_file_lines[i] = players_file_lines[i].split()[0] + ' request ' + nickname + '\n'
+                    found = True
                     break
-            players_file.close()
-            players_file = open('players.txt', 'w')
-            players_file.writelines(players_file_lines)
-    else:
-        enemy_nickname = players_file_lines[self_index].split()[2]
+            if not found:
+                players_file_lines[self_index] = nickname + ' waiting\n'
+        else:
+            players_file_lines[self_index] = nickname + ' waiting\n'
+        players_file.close()
+        players_file = open('players.txt', 'w')
+        players_file.writelines(players_file_lines)
+        print(players_file_lines)
+        players_file.close()
+        with open('players.txt', 'rb') as f:
+            server.storbinary('STOR p.txt', f)
+    elif (nickname + ' request') in players_file_lines[self_index]:
+        enemy_nickname = ' '.join(players_file_lines[self_index].split()[2:-1])
         for i in range(len(players_file_lines)):
             if enemy_nickname in players_file_lines[i]:
                 enemy_index = i
                 break
-        players_file_lines[enemy_index] == players_file_lines[enemy_index].split()[0] + ' request ' + nickname + ' u'
-        indexes = 0
-        for line in players_file_lines:
-            if nickname in line and enemy_nickname in line:
-                indexes += 1
-        if indexes == 2:
-            if len(players_file_lines[self_index].split()) == 4:
-                create_session(server, nickname, enemy_nickname)
-                symbol = 'X'
-            else:
-                symbol = 'O'
-            return symbol, enemy_nickname
+        if len(players_file_lines[self_index].split()) >= 4 and ('request ' + nickname) in players_file_lines[enemy_index]:
+            symbol = 'O'
+            create_session(server, nickname, enemy_nickname)
+        else:
+            players_file_lines[enemy_index] == enemy_nickname + ' request ' + nickname + ' a\n'
+            symbol = 'X'
+            players_file.close()
+            players_file = open('players.txt', 'w')
+            players_file.writelines(players_file_lines)
+            players_file.close()
+            with open('players.txt', 'rb') as f:
+                server.storbinary('STOR p.txt', f)
+        return symbol, enemy_nickname
     players_file.close()
+
+def wait_for_session(server, nickname):
+    with open('players.txt', 'wb') as f:
+        server.retrbinary('RETR p.txt', f.write)
+    players_file = open('players.txt')
+    players_file_lines = players_file.readlines()
+    for i in range(len(players_file_lines)):
+        if nickname in players_file_lines[i]:
+            self_index = i
+            break
+    if (nickname + ' playing') in players_file_lines[self_index]:
+        join_session(server, nickname)
+        return True
+    else:
+        return False
 
 def send_coordinates(server, coordinates, symbol):
     with open('move_' + symbol + '1.txt', 'w') as f:
@@ -300,7 +340,7 @@ def send_coordinates(server, coordinates, symbol):
 
 def get_coordinates(server, symbol):
     if symbol == 'X':
-        symbol = 'Y'
+        symbol = 'O'
     else:
         symbol = 'X'
     directory = server.nlst()
@@ -419,28 +459,28 @@ def main():
         if screen == 'game':
             if game_mode == 'online':
                 if not connected:
+                    turn = False
                     print(1)
                     server = ftplib.FTP()
-                    connect(server)
-                    print(2)
-                    start_searching(server, nickname)
-                    print(3)
-                    symbol = 'X'
-                    server.cwd('sessions')
-                    connected=True
-                    print(4)
-                    #create_session(server, nickname, enemy_nickname)
-                    '''
+                    if connect(server):
+                        print(2)
+                        start_searching(server, nickname)
+                        search = True
+                        begin = False
+                        connected = True
+                        print(3)
+                elif search:
                     search_result = search_for_players(server, nickname)
                     if bool(search_result):
                         symbol, enemy_nickname = search_result
+                        search = False
+                        print(4)
+                elif not begin:
+                    if wait_for_session(server, nickname):
                         if symbol == 'X':
-                            create_session(server, nickname, enemy_nickname)
-                        else:
-                            turn = False
-                        join_session(server, nickname)
-                        connected = True
-                    '''
+                            turn = True
+                        begin = True
+                        print(5)
                 elif not turn:
                     if symbol == 'X':
                         coords_received = get_coordinates(server, 'X')
@@ -452,7 +492,6 @@ def main():
                         if bool(coords_received):
                             o_coords.append(coords_received)
                             turn = not turn
-
             window.fill(black)
             for i in range(y//scale + 1):
                 pg.draw.line(window, white, (0, -field_offset[1] % scale + scale*i), (x, -field_offset[1] % scale + scale*i), 1)
