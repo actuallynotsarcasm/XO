@@ -23,8 +23,8 @@ fps_clock = pg.time.Clock()
 background = pg.image.load('XO_bg.jpg')
 bg_pos = background.get_rect()
 
+
 class button:
-    
     def __init__(self, width, height, rounding, color, text, text_color, text_size, text_font, x, y):
         self.width = width
         self.height = height
@@ -50,6 +50,7 @@ class button:
             return True
         else:
             return False
+
 
 def five_in_a_row(coordinates, last_move):
     horiz = sorted([i[0] for i in filter(lambda x: x[1] == last_move[1], coordinates)])
@@ -167,8 +168,40 @@ def five_in_a_row(coordinates, last_move):
     return False
 
 def exit_game():
+    clear_local_files()
     pg.quit()
     sys.exit(0)
+
+def clear_local_files():
+    for f in os.listdir():
+        if '.txt' in f:
+            os.remove(f)
+
+def clear_session(server, nickname, enemy_nickname):
+    server.cwd('/home/jrm/XO')
+    with open('players.txt', 'wb') as f:
+        server.retrbinary('RETR p.txt', f.write)
+    players_file = open('players.txt')
+    players_file_lines = players_file.readlines()
+    for i in range(len(players_file_lines)):
+        if nickname in players_file_lines[i].split()[0]:
+            self_index = i
+            break
+    for i in range(len(players_file_lines)):
+        if enemy_nickname in players_file_lines[i].split()[0]:
+            enemy_index = i
+            break
+    number = int(players_file_lines[self_index].split()[-1])
+    players_file_lines.remove(self_index)
+    players_file_lines.remove(enemy_index)
+    players_file.close()
+    players_file = open('players.txt', 'w')
+    players_file.writelines(players_file_lines)
+    players_file.close()
+    with open('players.txt', 'rb') as f:
+        server.storbinary('STOR p.txt', f)
+    server.cwd('/home/jrm/XO/sessions')
+    server.rmd('session' + str(number))
 
 def connect(server, number_of_try = 1):
     try:
@@ -184,7 +217,7 @@ def connect(server, number_of_try = 1):
             return False
 
 def start_searching(server, nickname):
-    server.cwd('XO')
+    server.cwd('/home/jrm/XO')
     if 'p.txt' in server.nlst():
         with open('players.txt', 'wb') as f:
             server.retrbinary('RETR p.txt', f.write)
@@ -219,18 +252,27 @@ def start_searching(server, nickname):
         server.storbinary('STOR p.txt', f)
 
 def create_session(server, nickname, enemy_nickname):
-    server.cwd('/home/jrm/XO/sessions')
-    directory = server.nlst()
-    if directory != []:
-        number = max([int(i[-1]) for i in directory]) + 1
-    else:
-        number = 0
-    server.mkd('session' + str(number))
-    server.cwd('/home/jrm/XO')
     with open('players.txt', 'wb') as f:
         server.retrbinary('RETR p.txt', f.write)
     players_file = open('players.txt')
     players_file_lines = players_file.readlines()
+    server.cwd('/home/jrm/XO/sessions')
+    directory = server.nlst()
+    number = -1
+    if directory != []:
+        directory_numbers = [int(i[-1]) for i in directory][::-1]
+        players_numbers = [int(i.split()[-1]) for i in players_file_lines]
+        for i in directory_numbers:
+            if not i in players_numbers:
+                number = i
+                break
+        if number == -1:
+            number = max(directory_numbers) + 1
+            server.mkd('session' + str(number))
+    else:
+        number = 0
+        server.mkd('session' + str(number))
+    server.cwd('/home/jrm/XO')
     for i in range(len(players_file_lines)):
         if nickname in players_file_lines[i].split()[0]:
             self_index = i
@@ -248,7 +290,6 @@ def create_session(server, nickname, enemy_nickname):
     with open('players.txt', 'rb') as f:
         server.storbinary('STOR p.txt', f)
 
-
 def join_session(server, nickname):
     with open('players.txt', 'wb') as f:
         server.retrbinary('RETR p.txt', f.write)
@@ -260,7 +301,7 @@ def join_session(server, nickname):
             break
     server.cwd('/home/jrm/XO/sessions')
     number = int(players_file_lines[self_index].split()[-1])
-    server.cwd('session' + str(number))
+    server.cwd('/home/jrm/XO/sessions/session' + str(number))
 
 def search_for_players(server, nickname):
     with open('players.txt', 'wb') as f:
@@ -346,6 +387,18 @@ def get_coordinates(server, symbol):
         server.delete('m_' + symbol + '.txt')
         return coordinates
 
+def check_for_nickname(server, nickname):
+    resp = False
+    with open('players.txt', 'wb') as f:
+        server.retrbinary('RETR p.txt', f.write)
+    players_file = open('players.txt')
+    players_file_lines = players_file.readlines()
+    for i in range(len(players_file_lines)):
+        if nickname in players_file_lines[i].split()[0]:
+            resp = True
+            break
+    return resp
+
 def main():
     x_coords = []
     o_coords = []
@@ -356,7 +409,6 @@ def main():
     scale = scale_default
     field_offset = (0, 0)
     mouse_pos = (0, 0)
-    timer_start = time.time()
     text_size = 20
     score = (0, 0)
     win_window = button(800, 500, 10, dark_slate_grey, '', black, 0, 'Fixedsys.ttf', x//2 - 400, y//2 - 250)
@@ -373,10 +425,13 @@ def main():
     enemy_nickname = 'just a player'
     server = ftplib.FTP()
     connected = False
+    begin = False
 
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT:
+                if game_mode == 'online' and connected and begin:
+                    clear_session(server, nickname, enemy_nickname)
                 exit_game()
 
             if screen == 'game':
@@ -399,12 +454,17 @@ def main():
                                 o_coords.append(field_pos)
                                 if five_in_a_row(o_coords, field_pos):
                                     win = True
-                                    winner = enemy_nickname + '(O)'
+                                    if game_mode == 'offline':
+                                        winner = enemy_nickname + '(O)'
+                                    else:
+                                        winner = nickname + '(O)'
                                     win_text = button(0, 0, 0, black, winner + ' is a winner', green, 50, 'Fixedsys.ttf', x//2, y//2 - 175)
                                     score = score[0], score[1] + 1
                             turn = not turn
                     elif win:
                         if end_game_button.check_click(event.pos):
+                            if game_mode == 'online':
+                                clear_session(server, nickname, enemy_nickname)
                             exit_game()
                         elif restart_button.check_click(event.pos):
                             win = False
@@ -417,6 +477,10 @@ def main():
                             field_offset = (0, 0)
                             timer_start = time.time()
                     if event.button == 1 and button_back.check_click(event.pos):
+                        if game_mode == 'online':
+                            if connected and begin:
+                                clear_session(server, nickname, enemy_nickname)
+                            connected = False
                         screen = 'main_menu'
                         win = False
                         winner = None
@@ -424,7 +488,6 @@ def main():
                         o_coords = []
                         scale = scale_default
                         field_offset = (0, 0)
-                        timer_start = time.time()
                         turn = True
                         score = (0, 0)
 
@@ -446,9 +509,11 @@ def main():
                         if button_play_offline.check_click(event.pos):
                             screen = 'game'
                             game_mode = 'offline'
+                            timer_start = time.time()
                         if button_play_online.check_click(event.pos):
                             screen = 'game'
                             game_mode = 'online'
+                            timer_start = time.time()
                         if button_quit.check_click(event.pos):
                             exit_game()
 
@@ -478,6 +543,18 @@ def main():
                         begin = True
                         print(5)
                 elif not turn:
+                    if not check_for_nickname(server, nickname):
+                        screen = 'main_menu'
+                        game_mode = 'offline'
+                        win = False
+                        winner = None
+                        score = (0, 0)
+                        turn = True
+                        symbol = 'X'
+                        x_coords = []
+                        o_coords = []
+                        scale = scale_default
+                        field_offset = (0, 0)
                     if symbol == 'X':
                         coords_received = get_coordinates(server, 'X')
                         if bool(coords_received):
@@ -498,6 +575,19 @@ def main():
                                 winner = enemy_nickname + '(X)'
                                 win_text = button(0, 0, 0, black, winner + ' is a winner', green, 50, 'Fixedsys.ttf', x//2, y//2 - 175)
                                 score = score[0] + 1, score[1]
+                else:
+                    if not check_for_nickname(server, nickname):
+                        screen = 'main_menu'
+                        game_mode = 'offline'
+                        win = False
+                        winner = None
+                        score = (0, 0)
+                        turn = True
+                        symbol = 'X'
+                        x_coords = []
+                        o_coords = []
+                        scale = scale_default
+                        field_offset = (0, 0)
             window.fill(black)
             for i in range(y//scale + 1):
                 pg.draw.line(window, white, (0, -field_offset[1] % scale + scale*i), (x, -field_offset[1] % scale + scale*i), 1)
