@@ -386,12 +386,10 @@ def main():
             if screen == 'game':
                 if event.type == pg.MOUSEBUTTONDOWN:
                     if event.button == 1 and not win and (game_mode == 'offline' or turn) and event.pos[1] > 70:
-                        field_pos = ((event.pos[0] + field_offset[0])//scale, (event.pos[1] + field_offset[1])//scale)
+                        field_pos = [(event.pos[0] + field_offset[0])//scale, (event.pos[1] + field_offset[1])//scale]
                         if not (field_pos in x_coords) and not (field_pos in o_coords):
                             if (turn and game_mode == 'offline') or (game_mode == 'online' and symbol == 'X'):
                                 if game_mode == 'online' and connected:
-                                    print(x_coords, ':::::', o_coords)
-                                    print('sending x on', field_pos)
                                     send_coordinates(server, field_pos, 'X')
                                 x_coords.append(field_pos)
                                 if five_in_a_row(x_coords, field_pos):
@@ -401,8 +399,6 @@ def main():
                                     score = score[0] + 1, score[1]
                             else:
                                 if game_mode == 'online' and connected:
-                                    print(x_coords, ':::::', o_coords)
-                                    print('sending o on', field_pos)
                                     send_coordinates(server, field_pos, 'O')
                                 o_coords.append(field_pos)
                                 if five_in_a_row(o_coords, field_pos):
@@ -487,15 +483,11 @@ def main():
                     if symbol == 'X':
                         coords_received = get_coordinates(server, 'X')
                         if bool(coords_received):
-                            print(x_coords, ':::::', o_coords)
-                            print('getting o on', field_pos)
                             o_coords.append(coords_received)
                             turn = not turn
                     else:
                         coords_received = get_coordinates(server, 'O')
                         if bool(coords_received):
-                            print(x_coords, ':::::', o_coords)
-                            print('getting x on', field_pos)
                             x_coords.append(coords_received)
                             turn = not turn
             window.fill(black)
