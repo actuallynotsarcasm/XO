@@ -291,20 +291,16 @@ def search_for_players(server, nickname):
         with open('players.txt', 'rb') as f:
             server.storbinary('STOR p.txt', f)
     elif (nickname + ' request') in players_file_lines[self_index]:
-        print('in request')
         enemy_nickname = players_file_lines[self_index].split()[2]
         for i in range(len(players_file_lines)):
             if enemy_nickname in players_file_lines[i].split()[0]:
                 enemy_index = i
                 break
-        print('indexy:', self_index, enemy_index)
         if len(players_file_lines[self_index].split()) == 4 and ('request ' + nickname) in players_file_lines[enemy_index]:
             symbol = 'O'
             create_session(server, nickname, enemy_nickname)
         else:
-            print('do:', players_file_lines)
             players_file_lines[enemy_index] = enemy_nickname + ' request ' + nickname + ' a\n'
-            print('posle:', players_file_lines)
             symbol = 'X'
             players_file.close()
             players_file = open('players.txt', 'w')
@@ -412,6 +408,8 @@ def main():
                             exit_game()
                         elif restart_button.check_click(event.pos):
                             win = False
+                            if (len(x_coords) + len(o_coords)) % 2 == 0:
+                                turn = not turn
                             winner = None
                             x_coords = []
                             o_coords = []
@@ -485,11 +483,21 @@ def main():
                         if bool(coords_received):
                             o_coords.append(coords_received)
                             turn = not turn
+                            if five_in_a_row(o_coords, field_pos):
+                                win = True
+                                winner = enemy_nickname + '(O)'
+                                win_text = button(0, 0, 0, black, winner + ' is a winner', green, 50, 'Fixedsys.ttf', x//2, y//2 - 175)
+                                score = score[0], score[1] + 1
                     else:
                         coords_received = get_coordinates(server, 'O')
                         if bool(coords_received):
                             x_coords.append(coords_received)
                             turn = not turn
+                            if five_in_a_row(x_coords, field_pos):
+                                win = True
+                                winner = enemy_nickname + '(X)'
+                                win_text = button(0, 0, 0, black, winner + ' is a winner', green, 50, 'Fixedsys.ttf', x//2, y//2 - 175)
+                                score = score[0] + 1, score[1]
             window.fill(black)
             for i in range(y//scale + 1):
                 pg.draw.line(window, white, (0, -field_offset[1] % scale + scale*i), (x, -field_offset[1] % scale + scale*i), 1)
@@ -504,7 +512,10 @@ def main():
             window.blit(pg.font.Font('Fixedsys.ttf', text_size).render('Time: ', 1, green), (25, 25))
             window.blit(pg.font.Font('Fixedsys.ttf', text_size).render(int((time.time() - timer_start) // 60 < 10) * '0' + str(int(time.time() - timer_start) // 60) + ':' + int(time.time() - timer_start < 10) * '0' + str(int(time.time() - timer_start) % 60), 1, green), (85, 25))
             window.blit(pg.font.Font('Fixedsys.ttf', text_size).render('Score: ', 1, green), (x//2 - 240, 70 // 2  - text_size // 2 - int(text_size * 0.13)))
-            window.blit(pg.font.Font('Fixedsys.ttf', text_size).render(nickname+' (X)  :  '+enemy_nickname+' (O)', 1, green), (x//2 - int(0.26 * text_size) * len(nickname+' (X)  :  '+enemy_nickname+' (O)'), 10))
+            if game_mode == 'offline' or symbol == 'X':
+                window.blit(pg.font.Font('Fixedsys.ttf', text_size).render(nickname+' (X)  :  '+enemy_nickname+' (O)', 1, green), (x//2 - int(0.26 * text_size) * len(nickname+' (X)  :  '+enemy_nickname+' (O)'), 10))
+            else:
+                window.blit(pg.font.Font('Fixedsys.ttf', text_size).render(enemy_nickname+' (X)  :  '+nickname+' (O)', 1, green), (x//2 - int(0.26 * text_size) * len(nickname+' (X)  :  '+enemy_nickname+' (O)'), 10))
             window.blit(pg.font.Font('Fixedsys.ttf', text_size).render(str(score[0]) + '  :  ' + str(score[1]), 1, green), (x//2 - int(0.26 * text_size) * len(str(score[0]) + '  :  ' + str(score[1])), 35))
             button_back.draw()
             if win:
