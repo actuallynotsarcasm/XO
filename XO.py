@@ -483,7 +483,7 @@ def main():
                         if bool(coords_received):
                             o_coords.append(coords_received)
                             turn = not turn
-                            if five_in_a_row(o_coords, field_pos):
+                            if five_in_a_row(o_coords, coords_received):
                                 win = True
                                 winner = enemy_nickname + '(O)'
                                 win_text = button(0, 0, 0, black, winner + ' is a winner', green, 50, 'Fixedsys.ttf', x//2, y//2 - 175)
@@ -493,7 +493,7 @@ def main():
                         if bool(coords_received):
                             x_coords.append(coords_received)
                             turn = not turn
-                            if five_in_a_row(x_coords, field_pos):
+                            if five_in_a_row(x_coords, coords_received):
                                 win = True
                                 winner = enemy_nickname + '(X)'
                                 win_text = button(0, 0, 0, black, winner + ' is a winner', green, 50, 'Fixedsys.ttf', x//2, y//2 - 175)
