@@ -1,5 +1,5 @@
 from socket import timeout
-import pygame as pg, sys, time, ftplib, os
+import pygame as pg, sys, time, ftplib, os, random
 
 black = (0, 0, 0)
 white = (255, 255, 255)
@@ -50,6 +50,14 @@ class button:
             return True
         else:
             return False
+
+class ai:
+    def __init__(self, difficulty=1):
+        self.difficulty = difficulty
+        self.possible_moves = []
+    def move(self, coords, enemy_coords):
+        if self.difficulty == 1:
+            pass
 
 
 def five_in_a_row(coordinates, last_move):
