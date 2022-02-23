@@ -434,7 +434,9 @@ def main():
     enemy_nickname = 'just a player'
     server = ftplib.FTP()
     connected = False
+    search = False
     begin = False
+    t = time.time()
 
     while True:
         for event in pg.event.get():
@@ -489,16 +491,21 @@ def main():
                         if game_mode == 'online':
                             if connected and begin:
                                 clear_session(server, nickname, enemy_nickname)
+                                begin = False
                             connected = False
                         screen = 'main_menu'
+                        game_mode = 'offline'
                         win = False
                         winner = None
+                        score = (0, 0)
+                        turn = True
+                        symbol = 'X'
+                        enemy_nickname = 'just a player'
                         x_coords = []
                         o_coords = []
                         scale = scale_default
                         field_offset = (0, 0)
-                        turn = True
-                        score = (0, 0)
+                        print('back to main')
 
                 if event.type == pg.MOUSEWHEEL:
                     if scale > scale_default // 10 and event.y == -1:
@@ -528,6 +535,9 @@ def main():
 
         if screen == 'game':
             if game_mode == 'online':
+                if time.time() - t > 1:
+                    t = time.time()
+                    print(connected, search, begin, turn)
                 if not connected:
                     turn = False
                     print(1)
@@ -555,15 +565,19 @@ def main():
                     if not check_for_nickname(server, nickname):
                         screen = 'main_menu'
                         game_mode = 'offline'
+                        connected = False
+                        begin = False
                         win = False
                         winner = None
                         score = (0, 0)
                         turn = True
                         symbol = 'X'
+                        enemy_nickname = 'just a player'
                         x_coords = []
                         o_coords = []
                         scale = scale_default
                         field_offset = (0, 0)
+                        print('back to main')
                     if symbol == 'X':
                         coords_received = get_coordinates(server, 'X')
                         if bool(coords_received):
@@ -588,15 +602,19 @@ def main():
                     if not check_for_nickname(server, nickname):
                         screen = 'main_menu'
                         game_mode = 'offline'
+                        connected = False
+                        begin = False
                         win = False
                         winner = None
                         score = (0, 0)
                         turn = True
                         symbol = 'X'
+                        enemy_nickname = 'just a player'
                         x_coords = []
                         o_coords = []
                         scale = scale_default
                         field_offset = (0, 0)
+                        print('back to main')
             window.fill(black)
             for i in range(y//scale + 1):
                 pg.draw.line(window, white, (0, -field_offset[1] % scale + scale*i), (x, -field_offset[1] % scale + scale*i), 1)
