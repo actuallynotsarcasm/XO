@@ -200,8 +200,8 @@ def clear_session(server, nickname, enemy_nickname):
             enemy_index = i
             break
     number = int(players_file_lines[self_index].split()[-1])
-    players_file_lines.remove(self_index)
-    players_file_lines.remove(enemy_index)
+    players_file_lines.pop(self_index)
+    players_file_lines.pop(enemy_index)
     players_file.close()
     players_file = open('players.txt', 'w')
     players_file.writelines(players_file_lines)
