@@ -269,7 +269,7 @@ def create_session(server, nickname, enemy_nickname):
     number = -1
     if directory != []:
         directory_numbers = [int(i[-1]) for i in directory][::-1]
-        players_numbers = [int(i.split()[-1]) for i in players_file_lines]
+        players_numbers = [int(i.split()[-1]) for i in filter(lambda x: x.split()[-1] in [str(i) for i in range(10)], players_file_lines)]
         for i in directory_numbers:
             if not i in players_numbers:
                 number = i
@@ -341,21 +341,16 @@ def search_for_players(server, nickname):
         with open('players.txt', 'rb') as f:
             server.storbinary('STOR p.txt', f)
     elif (nickname + ' request') in players_file_lines[self_index]:
-        print('in request')
         enemy_nickname = players_file_lines[self_index].split()[2]
         for i in range(len(players_file_lines)):
             if enemy_nickname in players_file_lines[i].split()[0]:
                 enemy_index = i
                 break
-        print('ind:', self_index, enemy_index)
         if len(players_file_lines[self_index].split()) == 4 and ('request ' + nickname) in players_file_lines[enemy_index]:
             symbol = 'O'
             create_session(server, nickname, enemy_nickname)
         else:
-            print('trying to reply')
-            print(players_file_lines)
             players_file_lines[enemy_index] = enemy_nickname + ' request ' + nickname + ' a\n'
-            print(players_file_lines)
             symbol = 'X'
             players_file.close()
             players_file = open('players.txt', 'w')
