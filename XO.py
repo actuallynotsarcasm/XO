@@ -404,7 +404,7 @@ def get_coordinates(server, symbol):
 def check_for_nickname(server, nickname):
     resp = False
     with open('players.txt', 'wb') as f:
-        server.retrbinary('RETR p.txt', f.write)
+        server.retrbinary('RETR /home/jrm/XO/p.txt', f.write)
     players_file = open('players.txt')
     players_file_lines = players_file.readlines()
     for i in range(len(players_file_lines)):
