@@ -221,7 +221,6 @@ def connect(server, number_of_try = 1):
         if number_of_try < 3:
             connect(server, number_of_try + 1)
         else:
-            print('3 tries done')
             return False
 
 def start_searching(server, nickname):
@@ -436,7 +435,6 @@ def main():
     connected = False
     search = False
     begin = False
-    t = time.time()
 
     while True:
         for event in pg.event.get():
@@ -444,7 +442,6 @@ def main():
                 if game_mode == 'online' and connected and begin:
                     clear_session(server, nickname, enemy_nickname)
                 exit_game()
-
             if screen == 'game':
                 if event.type == pg.MOUSEBUTTONDOWN:
                     if event.button == 1 and not win and (game_mode == 'offline' or turn) and event.pos[1] > 70:
@@ -505,8 +502,6 @@ def main():
                         o_coords = []
                         scale = scale_default
                         field_offset = (0, 0)
-                        print('back to main')
-
                 if event.type == pg.MOUSEWHEEL:
                     if scale > scale_default // 10 and event.y == -1:
                         field_offset = (scale - scale_default//10)*(mouse_pos[0] + field_offset[0])//scale - mouse_pos[0], (scale - scale_default//10)*(mouse_pos[1] + field_offset[1])//scale - mouse_pos[1]
@@ -514,7 +509,6 @@ def main():
                     elif scale < scale_default * 2 and event.y == 1:
                         field_offset = (scale + scale_default//10)*(mouse_pos[0] + field_offset[0])//scale - mouse_pos[0], (scale + scale_default//10)*(mouse_pos[1] + field_offset[1])//scale - mouse_pos[1]
                         scale += scale_default // 10
-
                 if event.type == pg.MOUSEMOTION:
                     if bool(event.buttons[2]):
                         field_offset = field_offset[0] - event.rel[0], field_offset[1] - event.rel[1]
@@ -535,32 +529,24 @@ def main():
 
         if screen == 'game':
             if game_mode == 'online':
-                if time.time() - t > 1:
-                    t = time.time()
-                    print(connected, search, begin, turn)
                 if not connected:
                     turn = False
-                    print(1)
                     server = ftplib.FTP()
                     if connect(server):
-                        print(2)
                         start_searching(server, nickname)
                         search = True
                         begin = False
                         connected = True
-                        print(3)
                 elif search:
                     search_result = search_for_players(server, nickname)
                     if bool(search_result):
                         symbol, enemy_nickname = search_result
                         search = False
-                        print(4)
                 elif not begin:
                     if wait_for_session(server, nickname):
                         if symbol == 'X':
                             turn = True
                         begin = True
-                        print(5)
                 elif not turn:
                     if not check_for_nickname(server, nickname):
                         screen = 'main_menu'
@@ -577,7 +563,6 @@ def main():
                         o_coords = []
                         scale = scale_default
                         field_offset = (0, 0)
-                        print('back to main')
                     if symbol == 'X':
                         coords_received = get_coordinates(server, 'X')
                         if bool(coords_received):
@@ -614,7 +599,6 @@ def main():
                         o_coords = []
                         scale = scale_default
                         field_offset = (0, 0)
-                        print('back to main')
             window.fill(black)
             for i in range(y//scale + 1):
                 pg.draw.line(window, white, (0, -field_offset[1] % scale + scale*i), (x, -field_offset[1] % scale + scale*i), 1)
